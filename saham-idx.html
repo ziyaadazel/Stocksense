@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StockSense IDX — Decision Maker Saham Indonesia</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700&family=DM+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #0B0F1A;
+  --bg2:      #111827;
+  --bg3:      #1C2333;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.14);
+  --text:     #F0F4FF;
+  --text2:    #8896B3;
+  --text3:    #4B5675;
+  --green:    #22D3A0;
+  --green-bg: rgba(34,211,160,0.10);
+  --red:      #F06B6B;
+  --red-bg:   rgba(240,107,107,0.10);
+  --gold:     #F5A623;
+  --gold-bg:  rgba(245,166,35,0.10);
+  --blue:     #60A5FA;
+  --blue-bg:  rgba(96,165,250,0.10);
+  --rad:      10px;
+  --rad-lg:   16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* layout */
+.wrap{max-width:900px;margin:0 auto;padding:1.5rem 1rem 4rem}
+
+/* header */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;background:var(--green);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.logo-icon i{color:#000;font-size:20px}
+.logo-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text)}
+.logo-name span{color:var(--green)}
+.logo-badge{font-size:11px;padding:3px 10px;background:var(--green-bg);color:var(--green);border-radius:20px;border:1px solid rgba(34,211,160,0.2)}
+
+/* search */
+.search-wrap{margin-bottom:2rem}
+.search-label{font-family:'Syne',sans-serif;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:.75rem;display:block}
+.search-row{display:flex;gap:10px}
+.search-input{flex:1;padding:.85rem 1.1rem;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rad);font-size:15px;color:var(--text);font-family:'Syne',sans-serif;font-weight:500;outline:none;letter-spacing:.03em;text-transform:uppercase;transition:border-color .2s}
+.search-input::placeholder{text-transform:none;color:var(--text3);font-weight:400;letter-spacing:0}
+.search-input:focus{border-color:var(--green)}
+.search-btn{padding:.85rem 1.5rem;background:var(--green);color:#000;border:none;border-radius:var(--rad);font-size:14px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;transition:all .2s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.search-btn:hover{background:#1ab98a}
+.search-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:.75rem}
+.chip{padding:4px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;font-size:12px;font-family:'DM Mono',monospace;color:var(--text2);cursor:pointer;transition:all .15s}
+.chip:hover{border-color:var(--green);color:var(--green)}
+
+/* spinner */
+.loading{text-align:center;padding:3rem;color:var(--text2)}
+.spin{display:inline-block;width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:1rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* error */
+.error-box{background:var(--red-bg);border:1px solid rgba(240,107,107,0.25);border-radius:var(--rad);padding:1rem 1.25rem;color:var(--red);font-size:14px;display:flex;gap:8px;align-items:flex-start}
+
+/* result grid */
+.result{animation:fadeIn .4s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* company header */
+.company-bar{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:1.25rem}
+.company-name{font-family:'Syne',sans-serif;font-size:22px;font-weight:700}
+.company-ticker{font-family:'DM Mono',monospace;font-size:13px;color:var(--text2);margin-top:3px}
+.price-block{text-align:right}
+.price-main{font-family:'DM Mono',monospace;font-size:28px;font-weight:500}
+.price-change{font-size:13px;margin-top:2px;display:flex;align-items:center;gap:4px;justify-content:flex-end}
+.price-change.up{color:var(--green)}
+.price-change.down{color:var(--red)}
+
+/* SIGNAL CARD */
+.signal-card{border-radius:var(--rad-lg);padding:1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
+.signal-card.buy{background:var(--green-bg);border:1px solid rgba(34,211,160,0.25)}
+.signal-card.hold{background:var(--gold-bg);border:1px solid rgba(245,166,35,0.25)}
+.signal-card.sell{background:var(--red-bg);border:1px solid rgba(240,107,107,0.25)}
+.signal-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.signal-card.buy .signal-icon{background:var(--green);color:#000}
+.signal-card.hold .signal-icon{background:var(--gold);color:#000}
+.signal-card.sell .signal-icon{background:var(--red);color:#fff}
+.signal-icon i{font-size:30px}
+.signal-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;opacity:.7}
+.signal-verdict{font-family:'Syne',sans-serif;font-size:32px;font-weight:700}
+.signal-card.buy .signal-verdict{color:var(--green)}
+.signal-card.hold .signal-verdict{color:var(--gold)}
+.signal-card.sell .signal-verdict{color:var(--red)}
+.signal-reason{font-size:13px;color:var(--text2);line-height:1.7;flex:1;min-width:200px}
+.signal-score{font-family:'DM Mono',monospace;font-size:12px;margin-top:.5rem;display:flex;gap:6px;flex-wrap:wrap}
+.sig-pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.sig-bull{background:var(--green-bg);color:var(--green)}
+.sig-bear{background:var(--red-bg);color:var(--red)}
+.sig-neu{background:var(--bg3);color:var(--text2)}
+
+/* grid 2col */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+
+/* card */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:1.1rem 1.25rem}
+.card-title{font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+.card-title i{font-size:14px}
+
+/* stat rows */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-label{font-size:13px;color:var(--text2)}
+.stat-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--text)}
+.stat-val.good{color:var(--green)}
+.stat-val.bad{color:var(--red)}
+.stat-val.warn{color:var(--gold)}
+
+/* tech bars */
+.tech-item{margin-bottom:.85rem}
+.tech-item:last-child{margin-bottom:0}
+.tech-head{display:flex;justify-content:space-between;margin-bottom:.35rem;font-size:13px}
+.tech-name{color:var(--text2)}
+.tech-sig{font-family:'DM Mono',monospace;font-weight:500}
+.bar-track{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+
+/* chart */
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rad-lg);padding:1.1rem 1.25rem;margin-bottom:12px}
+.chart-inner{height:200px;position:relative}
+
+/* 52wk */
+.wk52{display:flex;align-items:center;gap:10px;margin-top:.75rem}
+.wk52-bar{flex:1;height:6px;background:var(--bg3);border-radius:3px;position:relative}
+.wk52-fill{position:absolute;top:0;left:0;height:100%;background:var(--green);border-radius:3px}
+.wk52-dot{position:absolute;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;background:var(--gold);border:2px solid var(--bg2);border-radius:50%}
+.wk52-labels{display:flex;justify-content:space-between;font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);margin-top:.35rem}
+
+/* footer */
+.disclaimer{margin-top:2rem;padding:1rem 1.25rem;background:var(--bg3);border-radius:var(--rad);font-size:12px;color:var(--text3);line-height:1.6;border-left:3px solid var(--text3)}
+
+footer{text-align:center;margin-top:2rem;font-size:12px;color:var(--text3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon"><i class="ti ti-trending-up" aria-hidden="true"></i></div>
+      <div>
+        <div class="logo-name">Stock<span>Sense</span> IDX</div>
+      </div>
+    </div>
+    <span class="logo-badge">Data real-time · 100% gratis</span>
+  </div>
+
+  <div class="search-wrap">
+    <span class="search-label">Masukkan kode saham IDX (tanpa .JK)</span>
+    <div class="search-row">
+      <input class="search-input" id="ticker-input" type="text" placeholder="Contoh: BBCA, TLKM, ASII..." maxlength="6" />
+      <button class="search-btn" id="search-btn" onclick="analyze()">
+        <i class="ti ti-chart-bar" aria-hidden="true"></i> Analisis
+      </button>
+    </div>
+    <div class="chips">
+      <span class="chip" onclick="quick('BBCA')">BBCA</span>
+      <span class="chip" onclick="quick('TLKM')">TLKM</span>
+      <span class="chip" onclick="quick('ASII')">ASII</span>
+      <span class="chip" onclick="quick('BBRI')">BBRI</span>
+      <span class="chip" onclick="quick('BMRI')">BMRI</span>
+      <span class="chip" onclick="quick('GOTO')">GOTO</span>
+      <span class="chip" onclick="quick('ADRO')">ADRO</span>
+      <span class="chip" onclick="quick('UNVR')">UNVR</span>
+      <span class="chip" onclick="quick('ICBP')">ICBP</span>
+    </div>
+  </div>
+
+  <div id="output"></div>
+
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> Analisis ini bersifat informatif dan tidak merupakan rekomendasi investasi. Selalu lakukan riset mandiri sebelum mengambil keputusan trading. Data bersumber dari Yahoo Finance dan bisa terlambat hingga 15 menit.
+  </div>
+
+  <footer>StockSense IDX · Data dari Yahoo Finance · Gratis selamanya</footer>
+</div>
+
+<script>
+const PROXY = 'https://corsproxy.io/?';
+const YF1   = 'https://query1.finance.yahoo.com';
+const YF2   = 'https://query2.finance.yahoo.com';
+
+let chartInstance = null;
+
+function quick(t) {
+  document.getElementById('ticker-input').value = t;
+  analyze();
+}
+
+document.getElementById('ticker-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') analyze();
+});
+
+function fmt(n, dec=2) {
+  if (n == null || isNaN(n)) return 'N/A';
+  return n.toLocaleString('id-ID', {minimumFractionDigits:dec, maximumFractionDigits:dec});
+}
+function fmtRp(n) {
+  if (n == null || isNaN(n)) return 'N/A';
+  return 'Rp ' + n.toLocaleString('id-ID');
+}
+function fmtPct(n) {
+  if (n == null || isNaN(n)) return 'N/A';
+  return (n >= 0 ? '+' : '') + fmt(n) + '%';
+}
+
+function calcRSI(closes, period=14) {
+  if (closes.length < period+1) return null;
+  let gains=0, losses=0;
+  for (let i=1; i<=period; i++) {
+    const d = closes[i]-closes[i-1];
+    if (d>0) gains+=d; else losses-=d;
+  }
+  let ag=gains/period, al=losses/period;
+  for (let i=period+1; i<closes.length; i++) {
+    const d = closes[i]-closes[i-1];
+    ag = (ag*(period-1)+(d>0?d:0))/period;
+    al = (al*(period-1)+(d<0?-d:0))/period;
+  }
+  if (al===0) return 100;
+  return 100-(100/(1+ag/al));
+}
+
+function calcMA(arr, n) {
+  if (arr.length < n) return null;
+  return arr.slice(-n).reduce((a,b)=>a+b,0)/n;
+}
+
+async function analyze() {
+  const raw = document.getElementById('ticker-input').value.trim().toUpperCase();
+  if (!raw) return;
+  const sym = raw + '.JK';
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div style="width:16px;height:16px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite"></div> Loading...';
+
+  document.getElementById('output').innerHTML = `<div class="loading"><div class="spin"></div><div>Mengambil data ${raw}...</div></div>`;
+
+  try {
+    const chartURL  = `${YF1}/v8/finance/chart/${sym}?interval=1d&range=6mo`;
+    const sumURL    = `${YF2}/v10/finance/quoteSummary/${sym}?modules=summaryDetail,defaultKeyStatistics,financialData,price,earningsTrend`;
+
+    const [r1, r2] = await Promise.all([
+      fetch(PROXY + encodeURIComponent(chartURL)),
+      fetch(PROXY + encodeURIComponent(sumURL))
+    ]);
+
+    if (!r1.ok || !r2.ok) throw new Error('Gagal mengambil data');
+
+    const d1 = await r1.json();
+    const d2 = await r2.json();
+
+    if (d1.chart?.error || !d1.chart?.result?.[0]) throw new Error(`Kode saham "${raw}" tidak ditemukan di IDX.`);
+    if (d2.quoteSummary?.error) throw new Error('Data fundamental tidak tersedia.');
+
+    renderResult(raw, sym, d1.chart.result[0], d2.quoteSummary.result);
+
+  } catch(e) {
+    document.getElementById('output').innerHTML =
+      `<div class="error-box"><i class="ti ti-alert-circle"></i><span>${e.message || 'Terjadi kesalahan. Coba lagi.'}</span></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ti ti-chart-bar"></i> Analisis';
+  }
+}
+
+function renderResult(ticker, sym, chart, sumResult) {
+  const meta   = chart.meta;
+  const closes = chart.indicators.quote[0].close.filter(x=>x!=null);
+  const times  = chart.timestamp.map(t => new Date(t*1000));
+  const labels = times.map(t => t.toLocaleDateString('id-ID',{day:'2-digit',month:'short'}));
+
+  const price  = meta.regularMarketPrice || closes[closes.length-1];
+  const prev   = meta.previousClose || meta.chartPreviousClose;
+  const chg    = price - prev;
+  const chgPct = (chg/prev)*100;
+
+  // Fundamental
+  const sd  = sumResult?.summaryDetail   || {};
+  const ks  = sumResult?.defaultKeyStatistics || {};
+  const fd  = sumResult?.financialData   || {};
+  const pr  = sumResult?.price           || {};
+
+  const pe     = sd.trailingPE?.raw;
+  const pb     = sd.priceToBook?.raw;
+  const div    = sd.dividendYield?.raw ? sd.dividendYield.raw*100 : null;
+  const mktcap = pr.marketCap?.raw;
+  const roe    = fd.returnOnEquity?.raw ? fd.returnOnEquity.raw*100 : null;
+  const de     = fd.debtToEquity?.raw;
+  const eps    = ks.trailingEps?.raw;
+  const beta   = ks.beta?.raw;
+  const wk52h  = sd.fiftyTwoWeekHigh?.raw;
+  const wk52l  = sd.fiftyTwoWeekLow?.raw;
+  const name   = pr.longName || pr.shortName || ticker;
+  const vol    = pr.regularMarketVolume?.raw;
+  const avgVol = pr.averageVolume?.raw;
+
+  // Technical
+  const rsi    = calcRSI(closes);
+  const ma20   = calcMA(closes, 20);
+  const ma50   = calcMA(closes, 50);
+  const ma200  = calcMA(closes, 200);
+
+  // --- SCORING ---
+  let score = 0;
+  const signals = [];
+
+  // RSI
+  if (rsi != null) {
+    if (rsi < 30)      { score+=2; signals.push({t:'RSI Oversold ('+fmt(rsi,0)+')',c:'bull'}); }
+    else if (rsi < 45) { score+=1; signals.push({t:'RSI Rendah ('+fmt(rsi,0)+')',c:'bull'}); }
+    else if (rsi > 70) { score-=2; signals.push({t:'RSI Overbought ('+fmt(rsi,0)+')',c:'bear'}); }
+    else if (rsi > 55) { score-=1; signals.push({t:'RSI Tinggi ('+fmt(rsi,0)+')',c:'bear'}); }
+    else               { signals.push({t:'RSI Netral ('+fmt(rsi,0)+')',c:'neu'}); }
+  }
+
+  // Moving Average
+  if (ma20 && price > ma20)  { score+=1; signals.push({t:'Di atas MA20',c:'bull'}); }
+  if (ma20 && price < ma20)  { score-=1; signals.push({t:'Di bawah MA20',c:'bear'}); }
+  if (ma50 && price > ma50)  { score+=1; signals.push({t:'Di atas MA50',c:'bull'}); }
+  if (ma200 && ma50 && ma50 > ma200) { score+=1; signals.push({t:'Golden Cross MA',c:'bull'}); }
+  if (ma200 && ma50 && ma50 < ma200) { score-=1; signals.push({t:'Death Cross MA',c:'bear'}); }
+
+  // Fundamental
+  if (pe != null) {
+    if (pe < 10)       { score+=2; signals.push({t:'P/E Sangat Murah (<10)',c:'bull'}); }
+    else if (pe < 20)  { score+=1; signals.push({t:'P/E Wajar (<20)',c:'bull'}); }
+    else if (pe > 40)  { score-=1; signals.push({t:'P/E Mahal (>40)',c:'bear'}); }
+  }
+  if (roe != null) {
+    if (roe > 20)      { score+=1; signals.push({t:'ROE Kuat (>20%)',c:'bull'}); }
+    else if (roe < 5)  { score-=1; signals.push({t:'ROE Lemah (<5%)',c:'bear'}); }
+  }
+  if (de != null) {
+    if (de > 200)      { score-=1; signals.push({t:'Utang Tinggi',c:'bear'}); }
+    else if (de < 50)  { score+=1; signals.push({t:'Utang Rendah',c:'bull'}); }
+  }
+  if (div && div > 3)  { score+=1; signals.push({t:'Dividen Menarik ('+fmt(div,1)+'%)',c:'bull'}); }
+
+  // Volume
+  if (vol && avgVol && vol > avgVol*1.5) { score+=1; signals.push({t:'Volume Tinggi',c:'bull'}); }
+
+  // Verdict
+  let verdict, vclass, vicon, vreason;
+  if (score >= 3) {
+    verdict='BELI'; vclass='buy'; vicon='ti-trending-up';
+    vreason='Sinyal teknikal dan fundamental secara umum positif. Momentum harga cukup kuat dengan valuasi yang wajar. Tetap pasang stop-loss dan perhatikan level support.';
+  } else if (score >= 0) {
+    verdict='TAHAN'; vclass='hold'; vicon='ti-equal';
+    vreason='Sinyal campuran antara positif dan negatif. Belum ada momentum kuat ke satu arah. Tunggu konfirmasi lebih lanjut sebelum menambah atau mengurangi posisi.';
+  } else {
+    verdict='JUAL'; vclass='sell'; vicon='ti-trending-down';
+    vreason='Tekanan jual lebih dominan dari sisi teknikal maupun fundamental. Pertimbangkan untuk mengurangi posisi atau pasang stop-loss ketat.';
+  }
+
+  // RSI bar color
+  function rsiColor(v) {
+    if (v < 30) return '#22D3A0';
+    if (v > 70) return '#F06B6B';
+    return '#F5A623';
+  }
+  function rsiBarW(v) { return Math.min(100, Math.max(0, v)) + '%'; }
+
+  // MA signal text
+  function maSig(cur, ma, label) {
+    if (!ma) return {t:'N/A',c:'--',bar:0,col:'#4B5675'};
+    const diff = ((cur-ma)/ma*100);
+    const above = cur > ma;
+    return {
+      t: (above?'+':'')+fmt(diff,1)+'% '+label,
+      c: above?'Bullish':'Bearish',
+      bar: Math.min(100,Math.abs(diff)*5+50),
+      col: above?'#22D3A0':'#F06B6B'
+    };
+  }
+  const ma20s  = maSig(price,ma20,'MA20');
+  const ma50s  = maSig(price,ma50,'MA50');
+  const ma200s = maSig(price,ma200,'MA200');
+
+  // 52wk position
+  let wk52pos = 50;
+  if (wk52h && wk52l && wk52h > wk52l) {
+    wk52pos = Math.max(0,Math.min(100,((price-wk52l)/(wk52h-wk52l))*100));
+  }
+
+  // Market cap display
+  function fmtMktCap(n) {
+    if (!n) return 'N/A';
+    if (n >= 1e15) return 'Rp '+fmt(n/1e15,1)+' Kuadriliun';
+    if (n >= 1e12) return 'Rp '+fmt(n/1e12,1)+' Triliun';
+    if (n >= 1e9)  return 'Rp '+fmt(n/1e9,1)+' Miliar';
+    return 'Rp '+fmt(n/1e6,1)+' Juta';
+  }
+
+  // signals HTML
+  const sigHTML = signals.slice(0,8).map(s=>
+    `<span class="sig-pill sig-${s.c}">${s.t}</span>`
+  ).join('');
+
+  const out = document.getElementById('output');
+  out.innerHTML = `
+  <div class="result">
+    <div class="company-bar">
+      <div>
+        <div class="company-name">${name}</div>
+        <div class="company-ticker">${sym} · Bursa Efek Indonesia</div>
+      </div>
+      <div class="price-block">
+        <div class="price-main">${fmtRp(price)}</div>
+        <div class="price-change ${chg>=0?'up':'down'}">
+          <i class="ti ${chg>=0?'ti-arrow-up':'ti-arrow-down'}" style="font-size:12px"></i>
+          ${fmtRp(Math.abs(chg))} (${fmtPct(chgPct)})
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNAL -->
+    <div class="signal-card ${vclass}">
+      <div class="signal-icon"><i class="ti ${vicon}"></i></div>
+      <div>
+        <div class="signal-label">Rekomendasi</div>
+        <div class="signal-verdict">${verdict}</div>
+      </div>
+      <div class="signal-reason">
+        ${vreason}
+        <div class="signal-score" style="margin-top:.65rem">${sigHTML}</div>
+      </div>
+    </div>
+
+    <!-- CHART -->
+    <div class="chart-wrap">
+      <div class="card-title"><i class="ti ti-chart-line"></i> Harga 6 Bulan Terakhir</div>
+      <div class="chart-inner"><canvas id="price-chart"></canvas></div>
+      <div style="margin-top:.75rem">
+        <div class="wk52">
+          <span style="font-size:11px;color:var(--text3);white-space:nowrap">52W Low<br>${fmtRp(wk52l)}</span>
+          <div class="wk52-bar">
+            <div class="wk52-fill" style="width:${wk52pos}%"></div>
+            <div class="wk52-dot" style="left:${wk52pos}%"></div>
+          </div>
+          <span style="font-size:11px;color:var(--text3);text-align:right;white-space:nowrap">52W High<br>${fmtRp(wk52h)}</span>
+        </div>
+        <div class="wk52-labels"><span>Terendah 52 Minggu</span><span style="text-align:right">Tertinggi 52 Minggu</span></div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <!-- TECHNICAL -->
+      <div class="card">
+        <div class="card-title"><i class="ti ti-radar"></i> Analisis Teknikal</div>
+
+        <div class="tech-item">
+          <div class="tech-head">
+            <span class="tech-name">RSI (14)</span>
+            <span class="tech-sig" style="color:${rsiColor(rsi)}">${rsi!=null?fmt(rsi,1):'N/A'} ${rsi!=null?(rsi<30?'· Oversold':rsi>70?'· Overbought':'· Netral'):''}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${rsi!=null?rsiBarW(rsi):'0'};background:${rsiColor(rsi||50)}"></div></div>
+        </div>
+
+        <div class="tech-item">
+          <div class="tech-head">
+            <span class="tech-name">vs MA20 (${ma20!=null?fmtRp(Math.round(ma20)):'N/A'})</span>
+            <span class="tech-sig" style="color:${ma20s.col}">${ma20s.c}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${ma20s.bar}%;background:${ma20s.col}"></div></div>
+        </div>
+
+        <div class="tech-item">
+          <div class="tech-head">
+            <span class="tech-name">vs MA50 (${ma50!=null?fmtRp(Math.round(ma50)):'N/A'})</span>
+            <span class="tech-sig" style="color:${ma50s.col}">${ma50s.c}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${ma50s.bar}%;background:${ma50s.col}"></div></div>
+        </div>
+
+        <div class="tech-item">
+          <div class="tech-head">
+            <span class="tech-name">vs MA200 (${ma200!=null?fmtRp(Math.round(ma200)):'N/A'})</span>
+            <span class="tech-sig" style="color:${ma200s.col}">${ma200s.c}</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${ma200s.bar}%;background:${ma200s.col}"></div></div>
+        </div>
+
+        <div class="stat-row">
+          <span class="stat-label">Volume Hari Ini</span>
+          <span class="stat-val ${vol&&avgVol&&vol>avgVol*1.2?'good':vol&&avgVol&&vol<avgVol*0.8?'bad':''}">${vol?vol.toLocaleString('id-ID'):'N/A'}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Avg Volume</span>
+          <span class="stat-val">${avgVol?avgVol.toLocaleString('id-ID'):'N/A'}</span>
+        </div>
+      </div>
+
+      <!-- FUNDAMENTAL -->
+      <div class="card">
+        <div class="card-title"><i class="ti ti-report-money"></i> Analisis Fundamental</div>
+
+        <div class="stat-row">
+          <span class="stat-label">P/E Ratio</span>
+          <span class="stat-val ${pe!=null?(pe<20?'good':pe>40?'bad':'warn'):''}">
+            ${pe!=null?fmt(pe,1):'N/A'} ${pe!=null?(pe<15?'· Murah':pe<25?'· Wajar':pe<40?'· Mahal':'· Sangat Mahal'):''}
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">P/B Ratio</span>
+          <span class="stat-val ${pb!=null?(pb<1?'good':pb>3?'bad':'warn')+''|| ''}">
+            ${pb!=null?fmt(pb,2)+'x':'N/A'} ${pb!=null?(pb<1?'· Di bawah book':pb<2?'· Wajar':''):''}
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">ROE</span>
+          <span class="stat-val ${roe!=null?(roe>15?'good':roe<5?'bad':'warn'):''}">
+            ${roe!=null?fmt(roe,1)+'%':'N/A'}
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Debt/Equity</span>
+          <span class="stat-val ${de!=null?(de<50?'good':de>150?'bad':'warn'):''}">
+            ${de!=null?fmt(de,1)+'%':'N/A'}
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">EPS</span>
+          <span class="stat-val">${eps!=null?fmtRp(eps):'N/A'}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Dividen Yield</span>
+          <span class="stat-val ${div&&div>3?'good':''}">
+            ${div!=null?fmt(div,2)+'%':'N/A'}
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Market Cap</span>
+          <span class="stat-val">${fmtMktCap(mktcap)}</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Beta</span>
+          <span class="stat-val ${beta!=null?(beta>1.5?'bad':beta<0.5?'warn':''):''}">
+            ${beta!=null?fmt(beta,2):'N/A'} ${beta!=null?(beta>1.5?'· Volatil Tinggi':beta<0.8?'· Stabil':'· Normal'):''}
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>`;
+
+  // Draw chart
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  const ctx = document.getElementById('price-chart').getContext('2d');
+  const validCloses = chart.indicators.quote[0].close;
+  const validLabels = [];
+  const validPrices = [];
+  chart.timestamp.forEach((t,i) => {
+    if (validCloses[i] != null) {
+      validLabels.push(new Date(t*1000).toLocaleDateString('id-ID',{day:'2-digit',month:'short'}));
+      validPrices.push(validCloses[i]);
+    }
+  });
+
+  const upColor   = '#22D3A0';
+  const downColor = '#F06B6B';
+  const lineColor = validPrices[validPrices.length-1] >= validPrices[0] ? upColor : downColor;
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: validLabels,
+      datasets: [{
+        data: validPrices,
+        borderColor: lineColor,
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+        backgroundColor: (ctx) => {
+          const g = ctx.chart.ctx.createLinearGradient(0,0,0,200);
+          g.addColorStop(0, lineColor+'33');
+          g.addColorStop(1, lineColor+'00');
+          return g;
+        }
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{
+        mode:'index', intersect:false,
+        backgroundColor:'#1C2333',
+        titleColor:'#8896B3',
+        bodyColor:'#F0F4FF',
+        borderColor:'rgba(255,255,255,0.1)',
+        borderWidth:1,
+        callbacks:{label:ctx=>'Rp '+ctx.raw.toLocaleString('id-ID')}
+      }},
+      scales: {
+        x:{
+          ticks:{color:'#4B5675',maxTicksLimit:6,font:{size:11}},
+          grid:{color:'rgba(255,255,255,0.04)'}
+        },
+        y:{
+          ticks:{color:'#4B5675',font:{size:11},callback:v=>'Rp '+v.toLocaleString('id-ID')},
+          grid:{color:'rgba(255,255,255,0.04)'}
+        }
+      }
+    }
+  });
+}
+</script>
+</body>
+</html>
